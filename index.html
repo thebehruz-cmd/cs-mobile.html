@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CS2 Mobile Clone</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: 'Arial', sans-serif;
+    color: #fff; touch-action: none; user-select: none;
+  }
+  #game { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+  /* ============ MENU ============ */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    z-index: 10;
+  }
+  .screen.hidden { display: none; }
+
+  .header {
+    padding: 15px; text-align: center;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 2px solid #e94560;
+  }
+  .header h1 { font-size: 22px; color: #e94560; letter-spacing: 3px; }
+  .header p { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+  .tabs {
+    display: flex; background: rgba(0,0,0,0.3);
+  }
+  .tab {
+    flex: 1; padding: 12px; text-align: center;
+    font-size: 13px; color: #888;
+    border-bottom: 3px solid transparent;
+    transition: 0.2s; cursor: pointer;
+  }
+  .tab.active { color: #e94560; border-bottom-color: #e94560; background: rgba(233,69,96,0.1); }
+
+  .content { flex: 1; overflow-y: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+  .content::-webkit-scrollbar { width: 4px; }
+  .content::-webkit-scrollbar-thumb { background: #e94560; border-radius: 2px; }
+
+  /* Skins grid */
+  .skins-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .skin-card {
+    background: linear-gradient(145deg, #1f2a44, #16213e);
+    border: 1px solid #2a3a5a; border-radius: 10px;
+    padding: 10px; text-align: center;
+    transition: 0.2s; cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .skin-card:active { transform: scale(0.96); border-color: #e94560; }
+  .skin-card.equipped { border: 2px solid #4ade80; box-shadow: 0 0 12px #4ade80; }
+  .skin-card .weapon-icon {
+    font-size: 40px; margin: 5px 0;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  .skin-card .name { font-size: 11px; color: #fff; font-weight: bold; margin-bottom: 3px; }
+  .skin-card .rarity { font-size: 9px; padding: 2px 6px; border-radius: 8px; display: inline-block; }
+
+  /* Rarity colors */
+  .r-common    { color: #b0c4de; background: rgba(176,196,222,0.15); }
+  .r-rare      { color: #4a90e2; background: rgba(74,144,226,0.15); }
+  .r-epic      { color: #a855f7; background: rgba(168,85,247,0.15); }
+  .r-legend    { color: #f59e0b; background: rgba(245,158,11,0.15); }
+  .r-mythic    { color: #ef4444; background: rgba(239,68,68,0.15); }
+
+  /* Cases */
+  .case-card {
+    background: linear-gradient(145deg, #2a1f3d, #1a1228);
+    border: 2px solid #6b21a8; border-radius: 12px;
+    padding: 15px; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: 0.2s;
+    box-shadow: 0 0 15px rgba(168,85,247,0.3);
+  }
+  .case-card:active { transform: scale(0.98); }
+  .case-card .case-icon { font-size: 45px; }
+  .case-card .case-info { flex: 1; }
+  .case-card .case-info h3 { font-size: 15px; color: #d8b4fe; margin-bottom: 4px; }
+  .case-card .case-info p { font-size: 10px; color: #999; }
+  .case-card .case-price {
+    font-size: 13px; color: #fbbf24; font-weight: bold;
+    background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;
+  }
+
+  /* Balance */
+  .balance {
+    position: absolute; top: 10px; right: 12px;
+    background: rgba(0,0,0,0.6); padding: 6px 12px;
+    border-radius: 20px; font-size: 12px;
+    border: 1px solid #fbbf24; color: #fbbf24;
+    z-index: 20; font-weight: bold;
+  }
+
+  /* Case opening */
+  .roulette-container {
+    position: relative; width: 100%; height: 120px;
+    background: #111; border-radius: 10px;
+    overflow: hidden; margin: 20px 0;
+    border: 2px solid #6b21a8;
+  }
+  .roulette {
+    display: flex; height: 100%;
+    transition: transform 5s cubic-bezier(0.15, 0.9, 0.2, 1);
+  }
+  .roulette-item {
+    min-width: 100px; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-right: 1px solid #333;
+    background: #1a1a1a;
+    padding: 5px;
+  }
+  .roulette-item .emoji { font-size: 32px; }
+  .roulette-item .n { font-size: 9px; margin-top: 4px; color: #ccc; text-align: center; }
+  .pointer {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 3px; background: #e94560;
+    box-shadow: 0 0 12px #e94560; z-index: 5;
+    transform: translateX(-50%);
+  }
+  .pointer::before, .pointer::after {
+    content: ''; position: absolute; left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+  }
+  .pointer::before { top: 0; border-top-color: #e94560; }
+  .pointer::after { bottom: 0; border-bottom-color: #e94560; }
+
+  /* Buttons */
+  .btn {
+    display: block; width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #e94560, #c81e4a);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: bold; cursor: pointer;
+    margin-top: 10px; letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(233,69,96,0.4);
+    transition: 0.2s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.5; }
+  .btn.green { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 4px 15px rgba(34,197,94,0.4); }
+  .btn.gray { background: linear-gradient(135deg, #4b5563, #374151); }
+
+  /* Modal */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal.hidden { display: none; }
+  .modal-box {
+    background: linear-gradient(145deg, #1f2a44, #0f1729);
+    border: 2px solid #e94560; border-radius: 15px;
+    padding: 25px; max-width: 340px; width: 100%;
+    text-align: center;
+    animation: pop 0.4s ease;
+  }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-box .big-icon { font-size: 60px; margin-bottom: 10px; }
+  .modal-box h2 { color: #e94560; margin-bottom: 8px; font-size: 18px; }
+  .modal-box p { color: #ccc; font-size: 13px; margin-bottom: 5px; }
+
+  /* ============ O'YIN ============ */
+  #gameScreen { background: #000; z-index: 50; }
+  #canvas { display: block; width: 100%; height: 100%; }
+
+  /* HUD */
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: 10px 15px;
+    display: flex; justify-content: space-between;
+    align-items: flex-start; pointer-events: none;
+    z-index: 5;
+  }
+  .hud-info {
+    background: rgba(0,0,0,0.6); padding: 8px 12px;
+    border-radius: 8px; font-size: 13px;
+    border-left: 3px solid #e94560;
+  }
+  .hud-info .big { font-size: 22px; font-weight: bold; color: #e94560; }
+
+  /* Crosshair */
+  .crosshair {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none; z-index: 6;
+  }
+  .crosshair::before, .crosshair::after {
+    content: ''; position: absolute;
+    background: #00ff88;
+    box-shadow: 0 0 4px #00ff88;
+  }
+  .crosshair::before { width: 3px; height: 18px; left: -1.5px; top: -9px; }
+  .crosshair::after { width: 18px; height: 3px; top: -1.5px; left: -9px; }
+  .crosshair.hit::before, .crosshair.hit::after { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+  /* Controls */
+  .joystick {
+    position: absolute; bottom: 30px; left: 30px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.2);
+    z-index: 8; touch-action: none;
+  }
+  .joystick-knob {
+    position: absolute; top: 50%; left: 50%;
+    width: 50px; height: 50px; border-radius: 50%;
+    background: rgba(233,69,96,0.7);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 15px rgba(233,69,96,0.8);
+    pointer-events: none;
+  }
+  .look-area {
+    position: absolute; top: 0; right: 0;
+    width: 55%; height: 100%;
+    z-index: 7; touch-action: none;
+  }
+  .shoot-btn {
+    position: absolute; bottom: 40px; right: 30px;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: radial-gradient(circle, #e94560, #7a0e2b);
+    border: 3px solid #fff; z-index: 9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; cursor: pointer;
+    box-shadow: 0 0 20px rgba(233,69,96,0.8);
+    touch-action: none;
+  }
+  .shoot-btn:active { transform: scale(0.9); }
+  .reload-btn {
+    position: absolute; bottom: 130px; right: 30px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(59,130,246,0.8);
+    border: 2px solid #fff; z-index: 9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; cursor: pointer;
+  }
+  .reload-btn:active { transform: scale(0.9); }
+
+  .ammo {
+    position: absolute; bottom: 140px; right: 120px;
+    background: rgba(0,0,0,0.7); padding: 8px 15px;
+    border-radius: 8px; font-size: 18px; font-weight: bold;
+    border: 2px solid #fbbf24; color: #fbbf24;
+    z-index: 9;
+  }
+  .ammo.low { border-color: #ef4444; color: #ef4444; animation: pulse 0.5s infinite; }
+  @keyframes pulse { 50% { opacity: 0.5; } }
+
+  .kill-feed {
+    position: absolute; top: 80px; right: 10px;
+    z-index: 9; text-align: right;
+  }
+  .kill-msg {
+    background: rgba(0,0,0,0.7); padding: 5px 10px;
+    border-radius: 5px; font-size: 11px; margin-bottom: 4px;
+    border-right: 3px solid #22c55e;
+    animation: slideIn 0.3s;
+  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } }
+
+  .damage-flash {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle, transparent 40%, rgba(255,0,0,0.5));
+    pointer-events: none; opacity: 0; z-index: 4;
+    transition: opacity 0.15s;
+  }
+  .damage-flash.show { opacity: 1; }
+
+  .end-screen {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .end-screen.hidden { display: none; }
+  .end-screen h1 { font-size: 40px; margin-bottom: 15px; }
+  .end-screen.win h1 { color: #22c55e; }
+  .end-screen.lose h1 { color: #ef4444; }
+  .end-screen p { color: #ccc; margin-bottom: 20px; font-size: 15px; }
+
+  .hitmarker {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff; font-size: 24px; font-weight: bold;
+    pointer-events: none; opacity: 0;
+    z-index: 10;
+  }
+  .hitmarker.show { animation: hitpop 0.3s; }
+  @keyframes hitpop {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+  }
+
+  .notif {
+    position: absolute; top: 50px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    border: 2px solid #e94560;
+    padding: 10px 20px; border-radius: 10px;
+    z-index: 200; font-size: 13px;
+    animation: notifIn 0.3s;
+  }
+  @keyframes notifIn { from { opacity: 0; transform: translate(-50%, -20px); } }
+</style>
+</head>
+<body>
+
+<div id="game">
+
+  <!-- ============ MENU ============ -->
+  <div class="screen" id="menuScreen">
+    <div class="balance">💰 <span id="balanceText">1000</span></div>
+    <div class="header">
+      <h1>CS2 MOBILE</h1>
+      <p>Skin • Case • Bot Match</p>
+    </div>
+    <div class="tabs">
+      <div class="tab active" data-tab="play">⚔️ O'yin</div>
+      <div class="tab" data-tab="skins">🔫 Skinlar</div>
+      <div class="tab" data-tab="cases">📦 Caselar</div>
+    </div>
+
+    <div class="content" id="tabContent">
+      <!-- Play tab -->
+      <div id="tab-play">
+        <div class="skin-card" style="padding:20px; margin-bottom:12px;">
+          <h2 style="color:#e94560; margin-bottom:10px;">🎮 Bot Match</h2>
+          <p style="color:#aaa; font-size:12px; margin-bottom:8px;">5 vs 5 jang - Botlar bilan</p>
+          <p style="color:#4ade80; font-size:11px; margin-bottom:15px;">🏆 G'alaba: +200 coin</p>
+        </div>
+        <button class="btn green" onclick="startGame()">▶️ O'YINNI BOSHLASH</button>
+        <button class="btn gray" onclick="showNotif('Boshqaruv: Joystick - harakat, Ekran - qarash, Qizil tugma - otish')">ℹ️ Boshqaruv</button>
+      </div>
+
+      <!-- Skins tab -->
+      <div id="tab-skins" style="display:none;">
+        <div class="skins-grid" id="skinsGrid"></div>
+      </div>
+
+      <!-- Cases tab -->
+      <div id="tab-cases" style="display:none;">
+        <div id="casesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CASE OPENING MODAL ============ -->
+  <div class="modal hidden" id="caseModal">
+    <div class="modal-box">
+      <h2 id="caseTitle">Case Ochish</h2>
+      <div class="roulette-container">
+        <div class="pointer"></div>
+        <div class="roulette" id="roulette"></div>
+      </div>
+      <p id="caseResult" style="min-height:20px; color:#fbbf24; font-weight:bold;"></p>
+      <button class="btn" id="openCaseBtn">🎁 OCHISH (100 💰)</button>
+      <button class="btn gray" onclick="closeCaseModal()">Yopish</button>
+    </div>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div class="screen hidden" id="gameScreen">
+    <canvas id="canvas"></canvas>
+
+    <div class="hud">
+      <div class="hud-info">
+        <div>HP: <span class="big" id="hpText">100</span></div>
+        <div style="font-size:10px; color:#aaa;">Sizning jamoangiz</div>
+      </div>
+      <div class="hud-info" style="border-left:none; border-right:3px solid #4a90e2; text-align:right;">
+        <div>Dushmanlar: <span class="big" style="color:#4a90e2;" id="enemyText">5</span></div>
+        <div style="font-size:10px; color:#aaa;">Kills: <span id="killsText">0</span></div>
+      </div>
+    </div>
+
+    <div class="kill-feed" id="killFeed"></div>
+    <div class="damage-flash" id="damageFlash"></div>
+
+    <div class="crosshair" id="crosshair"></div>
+    <div class="hitmarker" id="hitmarker">✕</div>
+
+    <div class="joystick" id="joystick">
+      <div class="joystick-knob" id="joystickKnob"></div>
+    </div>
+    <div class="look-area" id="lookArea"></div>
+
+    <div class="ammo" id="ammoText">30 / 90</div>
+    <div class="reload-btn" id="reloadBtn">🔄</div>
+    <div class="shoot-btn" id="shootBtn">🔥</div>
+
+    <div class="end-screen hidden" id="endScreen">
+      <h1 id="endTitle">G'ALABA!</h1>
+      <p id="endDesc"></p>
+      <button class="btn green" onclick="restartGame()">🔄 Yana o'ynash</button>
+      <button class="btn gray" onclick="backToMenu()">🏠 Menyuga</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ============== O'YIN MA'LUMOTLARI =======================
+   ========================================================= */
+
+let balance = 1000;
+let ownedSkins = [];
+let equippedSkin = null;
+let currentCase = null;
+
+// ==== SKINLAR RO'YXATI ====
+const SKINS = [
+  // Common
+  {id:'ak_blue',   name:'AK-47 Blue',      emoji:'🔫', rarity:'common', color:'#b0c4de', dmg:25, price:100},
+  {id:'m4_gray',   name:'M4 Gray',         emoji:'🔫', rarity:'common', color:'#b0c4de', dmg:24, price:100},
+  {id:'glock_std', name:'Glock Standard',  emoji:'🔫', rarity:'common', color:'#b0c4de', dmg:18, price:80},
+  // Rare
+  {id:'ak_red',    name:'AK-47 Redline',   emoji:'🔫', rarity:'rare',   color:'#4a90e2', dmg:30, price:250},
+  {id:'m4_silver', name:'M4 Silver',       emoji:'🔫', rarity:'rare',   color:'#4a90e2', dmg:28, price:250},
+  {id:'awp_blue',  name:'AWP Blue',        emoji:'🎯', rarity:'rare',   color:'#4a90e2', dmg:90, price:300},
+  // Epic
+  {id:'ak_purple', name:'AK-47 Neon',      emoji:'🔫', rarity:'epic',   color:'#a855f7', dmg:35, price:500},
+  {id:'awp_pink',  name:'AWP Dragon',      emoji:'🎯', rarity:'epic',   color:'#a855f7', dmg:100, price:600},
+  {id:'deagle',    name:'Deagle Fire',     emoji:'🔫', rarity:'epic',   color:'#a855f7', dmg:60, price:550},
+  // Legendary
+  {id:'ak_gold',   name:'AK-47 Gold',      emoji:'🔫', rarity:'legend', color:'#f59e0b', dmg:45, price:1000},
+  {id:'awp_gold',  name:'AWP Golden',      emoji:'🎯', rarity:'legend', color:'#f59e0b', dmg:120, price:1200},
+  // Mythic
+  {id:'ak_dragon', name:'AK Dragon Lore',  emoji:'🐉', rarity:'mythic', color:'#ef4444', dmg:55, price:2500},
+  {id:'awp_mythic',name:'AWP Medusa',      emoji:'👑', rarity:'mythic', color:'#ef4444', dmg:150, price:3000},
+];
+
+// ==== CASELAR ====
+const CASES = [
+  {id:'common_case', name:'Common Case',  emoji:'📦', price:100, pool:['common','common','common','rare','rare','epic']},
+  {id:'rare_case',   name:'Rare Case',    emoji:'🎁', price:250, pool:['rare','rare','rare','epic','epic','legend']},
+  {id:'epic_case',   name:'Epic Case',    emoji:'💎', price:500, pool:['epic','epic','epic','legend','legend','mythic']},
+  {id:'mythic_case', name:'Mythic Case',  emoji:'👑', price:1000, pool:['legend','legend','mythic','mythic','mythic','mythic']},
+];
+
+const RARITY_NAMES = {common:'Common', rare:'Rare', epic:'Epic', legend:'Legendary', mythic:'Mythic'};
+
+/* =========================================================
+   ============== MENU LOGIKASI ============================
+   ========================================================= */
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelectorAll('[id^="tab-"]').forEach(x => x.style.display = 'none');
+    document.getElementById('tab-' + t.dataset.tab).style.display = 'block';
+  };
+});
+
+function showNotif(text) {
+  const n = document.createElement('div');
+  n.className = 'notif';
+  n.textContent = text;
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 2500);
+}
+
+function updateBalance() {
+  document.getElementById('balanceText').textContent = balance;
+}
+
+function renderSkins() {
+  const grid = document.getElementById('skinsGrid');
+  grid.innerHTML = '';
+  SKINS.forEach(s => {
+    const owned = ownedSkins.includes(s.id);
+    const isEq = equippedSkin === s.id;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (isEq ? ' equipped' : '');
+    card.innerHTML = `
+      <div class="weapon-icon" style="color:${s.color}">${s.emoji}</div>
+      <div class="name">${s.name}</div>
+      <div class="rarity r-${s.rarity}">${RARITY_NAMES[s.rarity]}</div>
+      <div style="font-size:10px; color:#fbbf24; margin-top:5px;">⚔️ ${s.dmg} DMG</div>
+      ${owned ? 
+        (isEq ? '<div style="color:#4ade80; font-size:10px; margin-top:5px;">✓ KIYILGAN</div>' :
+                '<div style="color:#4a90e2; font-size:10px; margin-top:5px;">Egasi</div>') :
+        `<div style="color:#fbbf24; font-size:11px; margin-top:5px;">💰 ${s.price}</div>`}
+    `;
+    card.onclick = () => {
+      if (owned) {
+        equippedSkin = s.id;
+        renderSkins();
+        showNotif(`✓ ${s.name} kiyildi`);
+      } else {
+        if (balance >= s.price) {
+          balance -= s.price;
+          ownedSkins.push(s.id);
+          equippedSkin = s.id;
+          updateBalance();
+          renderSkins();
+          showNotif(`🎉 ${s.name} sotib olindi!`);
+        } else {
+          showNotif('❌ Mablag\' yetarli emas');
+        }
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+function renderCases() {
+  const list = document.getElementById('casesList');
+  list.innerHTML = '';
+  CASES.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'case-card';
+    card.innerHTML = `
+      <div class="case-icon">${c.emoji}</div>
+      <div class="case-info">
+        <h3>${c.name}</h3>
+        <p>${c.pool.length} xil skin • Random</p>
+      </div>
+      <div class="case-price">💰 ${c.price}</div>
+    `;
+    card.onclick = () => openCase(c);
+    list.appendChild(card);
+  });
+}
+
+/* =========================================================
+   ============== CASE OCHISH ==============================
+   ========================================================= */
+
+function openCase(c) {
+  currentCase = c;
+  document.getElementById('caseTitle').textContent = c.name;
+  document.getElementById('caseResult').textContent = '';
+  document.getElementById('openCaseBtn').textContent = `🎁 OCHISH (${c.price} 💰)`;
+  document.getElementById('openCaseBtn').disabled = false;
+  document.getElementById('caseModal').classList.remove('hidden');
+  buildRoulette(c);
+}
+
+function buildRoulette(c) {
+  const roulette = document.getElementById('roulette');
+  roulette.innerHTML = '';
+  roulette.style.transition = 'none';
+  roulette.style.transform = 'translateX(0)';
+
+  // 40 ta random item
+  for (let i = 0; i < 40; i++) {
+    const rarity = c.pool[Math.floor(Math.random() * c.pool.length)];
+    const pool = SKINS.filter(s => s.rarity === rarity);
+    const skin = pool[Math.floor(Math.random() * pool.length)];
+    const item = document.createElement('div');
+    item.className = 'roulette-item';
+    item.dataset.rarity = rarity;
+    item.dataset.skinId = skin.id;
+    item.innerHTML = `
+      <div class="emoji" style="color:${skin.color}">${skin.emoji}</div>
+      <div class="n" style="color:${skin.color}">${skin.name}</div>
+    `;
+    roulette.appendChild(item);
+  }
+}
+
+document.getElementById('openCaseBtn').onclick = () => {
+  if (!currentCase) return;
+  if (balance < currentCase.price) {
+    showNotif('❌ Mablag\' yetarli emas');
+    return;
+  }
+  balance -= currentCase.price;
+  updateBalance();
+  document.getElementById('openCaseBtn').disabled = true;
+
+  // Yutuqni aniqlash
+  const winRarity = currentCase.pool[Math.floor(Math.random() * currentCase.pool.length)];
+  const winPool = SKINS.filter(s => s.rarity === winRarity);
+  const winSkin = winPool[Math.floor(Math.random() * winPool.length)];
+
+  // Roulette da 25-indexga qo'yamiz
+  const roulette = document.getElementById('roulette');
+  const targetIndex = 28;
+  const itemWidth = 100;
+  const containerWidth = roulette.parentElement.offsetWidth;
+
+  // Target slotni o'zgartirish
+  const targetItem = roulette.children[targetIndex];
+  targetItem.dataset.skinId = winSkin.id;
+  targetItem.dataset.rarity = winSkin.rarity;
+  targetItem.innerHTML = `
+    <div class="emoji" style="color:${winSkin.color}">${winSkin.emoji}</div>
+    <div class="n" style="color:${winSkin.color}">${winSkin.name}</div>
+  `;
+
+  // Aylantirish
+  const offset = -(targetIndex * itemWidth) + (containerWidth / 2) - (itemWidth / 2);
+  roulette.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.2, 1)';
+  roulette.style.transform = `translateX(${offset}px)`;
+
+  setTimeout(() => {
+    if (!ownedSkins.includes(winSkin.id)) {
+      ownedSkins.push(winSkin.id);
+    }
+    document.getElementById('caseResult').innerHTML = 
+      `🎉 <span style="color:${winSkin.color}">${winSkin.name}</span> (${RARITY_NAMES[winSkin.rarity]})`;
+    document.getElementById('openCaseBtn').disabled = false;
+    renderSkins();
+  }, 5200);
+};
+
+function closeCaseModal() {
+  document.getElementById('caseModal').classList.add('hidden');
+  currentCase = null;
+  renderSkins();
+}
+
+/* =========================================================
+   ============== O'YIN ENGINE (3D FPS) ====================
+   ========================================================= */
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let game = {
+  running: false,
+  player: { x: 0, z: 0, angle: 0, hp: 100, maxHp: 100 },
+  enemies: [],
+  bullets: [],
+  kills: 0,
+  ammo: 30,
+  maxAmmo: 30,
+  reserveAmmo: 90,
+  reloading: false,
+  lastShot: 0,
+};
+
+const MAP_SIZE = 2000;
+const WALLS = [];
+const FOV = Math.PI / 3;
+const MAX_DEPTH = 1500;
+
+// ==== Xarita devorlari ====
+function generateMap() {
+  WALLS.length = 0;
+  // Chegara
+  WALLS.push({x:-1000, z:-1000, w:2000, d:50, h:150, color:'#4a5568'});
+  WALLS.push({x:-1000, z:950,  w:2000, d:50, h:150, color:'#4a5568'});
+  WALLS.push({x:-1000, z:-1000, w:50,   d:2000, h:150, color:'#4a5568'});
+  WALLS.push({x:950,   z:-1000, w:50,   d:2000, h:150, color:'#4a5568'});
+  
+  // Ichki devorlar
+  const interiors = [
+    {x:-600, z:-600, w:400, d:50, h:120, color:'#5a6578'},
+    {x:200,  z:-600, w:400, d:50, h:120, color:'#5a6578'},
+    {x:-600, z:300,  w:400, d:50, h:120, color:'#5a6578'},
+    {x:200,  z:300,  w:400, d:50, h:120, color:'#5a6578'},
+    {x:-100, z:-200, w:200, d:200,h:120, color:'#5a6578'},
+    {x:-900, z:-100, w:50,  d:400,h:120, color:'#5a6578'},
+    {x:850,  z:-100, w:50,  d:400,h:120, color:'#5a6578'},
+    {x:-400, z:700,  w:800, d:50, h:120, color:'#5a6578'},
+    {x:-300, z:-900, w:50,  d:400,h:120, color:'#5a6578'},
+    {x:300,  z:-900, w:50,  d:400,h:120, color:'#5a6578'},
+  ];
+  interiors.forEach(w => WALLS.push(w));
+}
+
+// ==== Enemies ====
+function spawnEnemies() {
+  game.enemies = [];
+  const positions = [
+    {x:600, z:-500}, {x:-700, z:500}, {x:700, z:600},
+    {x:-500, z:-700}, {x:500, z:800}
+  ];
+  positions.forEach((p, i) => {
+    game.enemies.push({
+      x: p.x, z: p.z, hp: 100, maxHp: 100,
+      alive: true, angle: 0,
+      lastShot: 0, color: '#e94560'
+    });
+  });
+}
+
+// ==== 3D Projection ====
+function project(worldX, worldZ, camX, camZ, camAngle) {
+  const dx = worldX - camX;
+  const dz = worldZ - camZ;
+  const cosA = Math.cos(-camAngle);
+  const sinA = Math.sin(-camAngle);
+  const camX_local = dx * cosA - dz * sinA;
+  const camZ_local = dx * sinA + dz * cosA;
+  return { x: camX_local, z: camZ_local };
+}
+
+function drawWall(wall, cam) {
+  const corners = [
+    {x: wall.x,          z: wall.z},
+    {x: wall.x + wall.w, z: wall.z},
+    {x: wall.x + wall.w, z: wall.z + wall.d},
+    {x: wall.x,          z: wall.z + wall.d},
+  ];
+  
+  const projected = corners.map(c => project(c.x, c.z, cam.x, cam.z, cam.angle));
+  
+  let visible = [];
+  projected.forEach(p => {
+    if (p.z > 0.1) visible.push(p);
+  });
+  if (visible.length < 3) return;
+
+  // Screen coordinates
+  const points = visible.map(p => ({
+    x: canvas.width / 2 + (p.x / p.z) * (canvas.width / (2 * Math.tan(FOV / 2))),
+    y: canvas.height / 2,
+    z: p.z
+  }));
+
+  if (points.length < 3) return;
+  if (points.every(p => p.x < 0) || points.every(p => p.x > canvas.width)) return;
+
+  // Oddiy 2D polygon
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, canvas.height / 2 - 100);
+    else ctx.lineTo(p.x, canvas.height / 2 - 100);
+  });
+  for (let i = points.length - 1; i >= 0; i--) {
+    ctx.lineTo(points[i].x, canvas.height / 2 + 100);
+  }
+  ctx.closePath();
+
+  // Fog
+  const avgZ = points.reduce((s, p) => s + p.z, 0) / points.length;
+  const fog = Math.min(1, avgZ / MAX_DEPTH);
+  ctx.fillStyle = wall.color;
+  ctx.globalAlpha = 1 - fog * 0.7;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Outline
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function drawEnemy(enemy, cam) {
+  if (!enemy.alive) return;
+  const p = project(enemy.x, enemy.z, cam.x, cam.z, cam.angle);
+  if (p.z < 50) return;
+
+  const screenX = canvas.width / 2 + (p.x / p.z) * (canvas.width / (2 * Math.tan(FOV / 2)));
+  const scale = 300 / p.z;
+  const size = scale * 40;
+
+  if (screenX < -size * 2 || screenX > canvas.width + size * 2) return;
+
+  const baseY = canvas.height / 2 + scale * 20;
+  
+  // Fog
+  const fog = Math.min(1, p.z / MAX_DEPTH);
+  ctx.globalAlpha = 1 - fog * 0.6;
+
+  // Tana
+  ctx.fillStyle = '#2d3748';
+  ctx.fillRect(screenX - size * 0.4, baseY - size * 1.2, size * 0.8, size * 1.2);
+
+  // Bosh
+  ctx.fillStyle = '#e94560';
+  ctx.beginPath();
+  ctx.arc(screenX, baseY - size * 1.4, size * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ko'zlar
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(screenX - size * 0.15, baseY - size * 1.5, size * 0.1, size * 0.1);
+  ctx.fillRect(screenX + size * 0.05, baseY - size * 1.5, size * 0.1, size * 0.1);
+
+  // Qurol
+  ctx.fillStyle = '#4a5568';
+  ctx.fillRect(screenX + size * 0.3, baseY - size * 0.9, size * 0.5, size * 0.15);
+
+  // HP bar
+  if (enemy.hp < enemy.maxHp) {
+    const hpW = size * 1.2;
+    const hpH = size * 0.12;
+    const hpY = baseY - size * 2;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(screenX - hpW/2, hpY, hpW, hpH);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(screenX - hpW/2, hpY, hpW * (enemy.hp / enemy.maxHp), hpH);
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function render() {
+  if (!game.running) return;
+
+  // Sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height / 2);
+  skyGrad.addColorStop(0, '#1a2332');
+  skyGrad.addColorStop(1, '#2d3748');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+
+  // Ground
+  const groundGrad = ctx.createLinearGradient(0, canvas.height / 2, 0, canvas.height);
+  groundGrad.addColorStop(0, '#3a2e26');
+  groundGrad.addColorStop(1, '#1a1512');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+  const cam = game.player;
+
+  // Depth sort
+  const allObjects = [
+    ...WALLS.map(w => ({type:'wall', data:w, dist: distToBox(cam, w)})),
+    ...game.enemies.filter(e => e.alive).map(e => ({type:'enemy', data:e, dist: Math.hypot(e.x - cam.x, e.z - cam.z)}))
+  ].sort((a, b) => b.dist - a.dist);
+
+  allObjects.forEach(obj => {
+    if (obj.type === 'wall') drawWall(obj.data, cam);
+    else drawEnemy(obj.data, cam);
+  });
+
+  // Blood effect
+  game.bullets.forEach(b => {
+    if (b.life > 0) {
+      b.life -= 1;
+    }
+  });
+  game.bullets = game.bullets.filter(b => b.life > 0);
+}
+
+function distToBox(cam, wall) {
+  const cx = wall.x + wall.w / 2;
+  const cz = wall.z + wall.d / 2;
+  return Math.hypot(cx - cam.x, cz - cam.z);
+}
+
+/* =========================================================
+   ============== BOSHQARUV ================================
+   ========================================================= */
+
+let joystick = { active: false, dx: 0, dy: 0 };
+let lookTouch = { active: false, lastX: 0, lastY: 0 };
+
+function setupControls() {
+  const joystickEl = document.getElementById('joystick');
+  const knob = document.getElementById('joystickKnob');
+  const lookArea = document.getElementById('lookArea');
+  const shootBtn = document.getElementById('shootBtn');
+  const reloadBtn = document.getElementById('reloadBtn');
+
+  // Joystick
+  joystickEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    joystick.active = true;
+    updateJoystick(e.touches[0]);
+  });
+  joystickEl.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (joystick.active) updateJoystick(e.touches[0]);
+  });
+  joystickEl.addEventListener('touchend', e => {
+    e.preventDefault();
+    joystick.active = false;
+    joystick.dx = 0;
+    joystick.dy = 0;
+    knob.style.transform = 'translate(-50%, -50%)';
+  });
+
+  function updateJoystick(touch) {
+    const rect = joystickEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = touch.clientX - cx;
+    let dy = touch.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    const maxDist = rect.width / 2;
+    if (dist > maxDist) {
+      dx = dx / dist * maxDist;
+      dy = dy / dist * maxDist;
+    }
+    joystick.dx = dx / maxDist;
+    joystick.dy = dy / maxDist;
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+  }
+
+  // Look (o'ng taraf)
+  lookArea.addEventListener('touchstart', e => {
+    e.preventDefault();
+    lookTouch.active = true;
+    lookTouch.lastX = e.touches[0].clientX;
+  });
+  lookArea.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!lookTouch.active) return;
+    const dx = e.touches[0].clientX - lookTouch.lastX;
+    game.player.angle += dx * 0.005;
+    lookTouch.lastX = e.touches[0].clientX;
+  });
+  lookArea.addEventListener('touchend', e => {
+    e.preventDefault();
+    lookTouch.active = false;
+  });
+
+  // Shoot
+  shootBtn.addEventListener('touchstart', e => {
+    e.preventDefault();
+    shoot();
+  });
+
+  // Reload
+  reloadBtn.addEventListener('click', () => reload());
+
+  // Klaviatura (desktop uchun)
+  const keys = {};
+  window.addEventListener('keydown', e => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key.toLowerCase() === 'r') reload();
+  });
+  window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+  
+  setInterval(() => {
+    if (!game.running) return;
+    const speed = 8;
+    let moved = false;
+    if (keys['w'] || keys['arrowup'])    { movePlayer(Math.cos(game.player.angle), Math.sin(game.player.angle), speed); moved = true; }
+    if (keys['s'] || keys['arrowdown'])  { movePlayer(-Math.cos(game.player.angle), -Math.sin(game.player.angle), speed); moved = true; }
+    if (keys['a'] || keys['arrowleft'])  { movePlayer(Math.cos(game.player.angle - Math.PI/2), Math.sin(game.player.angle - Math.PI/2), speed); moved = true; }
+    if (keys['d'] || keys['arrowright']) { movePlayer(Math.cos(game.player.angle + Math.PI/2), Math.sin(game.player.angle + Math.PI/2), speed); moved = true; }
+    if (keys[' ']) shoot();
+  }, 16);
+}
+
+function movePlayer(dx, dz, speed) {
+  const nx = game.player.x + dx * speed;
+  const nz = game.player.z + dz * speed;
+  if (!collide(nx, game.player.z)) game.player.x = nx;
+  if (!collide(game.player.x, nz)) game.player.z = nz;
+}
+
+function collide(x, z) {
+  const r = 25;
+  for (const w of WALLS) {
+    if (x + r > w.x && x - r < w.x + w.w &&
+        z + r > w.z && z - r < w.z + w.d) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* =========================================================
+   ============== OTISH ====================================
+   ========================================================= */
+
+let currentDamage = 25;
+
+function shoot() {
+  if (!game.running) return;
+  if (game.reloading) return;
+  if (Date.now() - game.lastShot < 100) return;
+  if (game.ammo <= 0) {
+    reload();
+    return;
+  }
+  game.ammo--;
+  game.lastShot = Date.now();
+  updateAmmoUI();
+
+  // Equipped skin damage
+  const skin = SKINS.find(s => s.id === equippedSkin);
+  currentDamage = skin ? skin.dmg : 25;
+
+  // Crosshair effekti
+  const ch = document.getElementById('crosshair');
+  ch.classList.add('hit');
+  setTimeout(() => ch.classList.remove('hit'), 100);
+
+  // Sound effect
+  playShotSound();
+
+  // Eng yaqin dushmanni topish (crosshair yo'nalishida)
+  const cam = game.player;
+  const dirX = Math.cos(cam.angle);
+  const dirZ = Math.sin(cam.angle);
+
+  let hit = false;
+  let nearestEnemy = null;
+  let nearestDist = Infinity;
+
+  game.enemies.forEach(e => {
+    if (!e.alive) return;
+    const dx = e.x - cam.x;
+    const dz = e.z - cam.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist > 800) return;
+    const dot = (dx / dist) * dirX + (dz / dist) * dirZ;
+    if (dot > 0.9) {
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestEnemy = e;
+      }
+    }
+  });
+
+  if (nearestEnemy) {
+    nearestEnemy.hp -= currentDamage;
+    hit = true;
+    showHitmarker();
+    if (nearestEnemy.hp <= 0) {
+      nearestEnemy.alive = false;
+      game.kills++;
+      addKillFeed();
+      updateHUD();
+      checkWin();
+    }
+  }
+}
+
+function reload() {
+  if (game.reloading) return;
+  if (game.ammo === game.maxAmmo) return;
+  if (game.reserveAmmo <= 0) return;
+  game.reloading = true;
+  showNotif('🔄 Qayta o\'qlash...');
+  setTimeout(() => {
+    const need = game.maxAmmo - game.ammo;
+    const take = Math.min(need, game.reserveAmmo);
+    game.ammo += take;
+    game.reserveAmmo -= take;
+    game.reloading = false;
+    updateAmmoUI();
+  }, 1500);
+}
+
+function updateAmmoUI() {
+  const el = document.getElementById('ammoText');
+  el.textContent = `${game.ammo} / ${game.reserveAmmo}`;
+  if (game.ammo <= 5) el.classList.add('low');
+  else el.classList.remove('low');
+}
+
+function showHitmarker() {
+  const hm = document.getElementById('hitmarker');
+  hm.classList.remove('show');
+  void hm.offsetWidth;
+  hm.classList.add('show');
+}
+
+function addKillFeed() {
+  const feed = document.getElementById('killFeed');
+  const msg = document.createElement('div');
+  msg.className = 'kill-msg';
+  msg.textContent = '💀 Siz → Bot';
+  feed.appendChild(msg);
+  setTimeout(() => msg.remove(), 3000);
+  while (feed.children.length > 5) feed.removeChild(feed.firstChild);
+}
+
+function playShotSound() {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+function updateHUD() {
+  document.getElementById('killsText').textContent = game.kills;
+  const alive = game.enemies.filter(e => e.alive).length;
+  document.getElementById('enemyText').textContent = alive;
+}
+
+function checkWin() {
+  const alive = game.enemies.filter(e => e.alive).length;
+  if (alive === 0) {
+    game.running = false;
+    balance += 200;
+    updateBalance();
+    document.getElementById('endTitle').textContent = '🏆 G\'ALABA!';
+    document.getElementById('endDesc').textContent = `+200 💰 • ${game.kills} kill`;
+    document.getElementById('endScreen').classList.remove('hidden');
+    document.getElementById('endScreen').className = 'end-screen win';
+  }
+}
+
+/* =========================================================
+   ============== GAME LOOP ================================
+   ========================================================= */
+
+let lastEnemyUpdate = 0;
+
+function gameLoop() {
+  if (!game.running) return;
+
+  // Player harakati (joystick)
+  if (joystick.dx !== 0 || joystick.dy !== 0) {
+    const speed = 6;
+    const forward = -joystick.dy;
+    const strafe = joystick.dx;
+    const dirX = Math.cos(game.player.angle);
+    const dirZ = Math.sin(game.player.angle);
+    const rightX = Math.cos(game.player.angle + Math.PI/2);
+    const rightZ = Math.sin(game.player.angle + Math.PI/2);
+    const moveX = dirX * forward + rightX * strafe;
+    const moveZ = dirZ * forward + rightZ * strafe;
+    movePlayer(moveX, moveZ, speed);
+  }
+
+  // Dushman AI
+  if (Date.now() - lastEnemyUpdate > 500) {
+    lastEnemyUpdate = Date.now();
+    game.enemies.forEach(e => {
+      if (!e.alive) return;
+      const dx = game.player.x - e.x;
+      const dz = game.player.z - e.z;
+      const dist = Math.hypot(dx, dz);
+      e.angle = Math.atan2(dz, dx);
+
+      // Harakatlanish
+      if (dist > 200 && dist < 900) {
+        const speed = 2;
+        const nx = e.x + (dx / dist) * speed;
+        const nz = e.z + (dz / dist) * speed;
+        if (!collide(nx, e.z)) e.x = nx;
+        if (!collide(e.x, nz)) e.z = nz;
+      }
+
+      // Otish
+      if (dist < 700 && Math.random() < 0.3) {
+        game.player.hp -= 5 + Math.random() * 10;
+        flashDamage();
+        if (game.player.hp <= 0) {
+          game.player.hp = 0;
+          gameOver();
+        }
+        updateHPUI();
+      }
+    });
+  }
+
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+function flashDamage() {
+  const el = document.getElementById('damageFlash');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 150);
+}
+
+function updateHPUI() {
+  document.getElementById('hpText').textContent = Math.max(0, Math.floor(game.player.hp));
+}
+
+function gameOver() {
+  game.running = false;
+  document.getElementById('endTitle').textContent = '💀 MAG\'LUBIYAT';
+  document.getElementById('endDesc').textContent = `Kills: ${game.kills}`;
+  document.getElementById('endScreen').classList.remove('hidden');
+  document.getElementById('endScreen').className = 'end-screen lose';
+}
+
+/* =========================================================
+   ============== GAME START/STOP ==========================
+   ========================================================= */
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function startGame() {
+  resizeCanvas();
+  document.getElementById('menuScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+
+  generateMap();
+  spawnEnemies();
+
+  game.running = true;
+  game.player = { x: 0, z: 0, angle: 0, hp: 100, maxHp: 100 };
+  game.kills = 0;
+  game.ammo = 30;
+  game.reserveAmmo = 90;
+  game.reloading = false;
+
+  updateHPUI();
+  updateHUD();
+  updateAmmoUI();
+
+  if (!window._controlsSetup) {
+    setupControls();
+    window._controlsSetup = true;
+  }
+
+  gameLoop();
+}
+
+function restartGame() {
+  startGame();
+}
+
+function backToMenu() {
+  game.running = false;
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('menuScreen').classList.remove('hidden');
+  document.getElementById('endScreen').classList.add('hidden');
+}
+
+/* =========================================================
+   ============== INIT =====================================
+   ========================================================= */
+
+// Boshlang'ich skinlar
+ownedSkins = ['glock_std'];
+equippedSkin = 'glock_std';
+
+updateBalance();
+renderSkins();
+renderCases();
+
+// Prevent context menu
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+</body>
+</html>
